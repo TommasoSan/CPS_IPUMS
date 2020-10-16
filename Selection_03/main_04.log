@@ -1,0 +1,263 @@
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  main_04
+       log:  /Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_03/main_04.log
+  log type:  text
+ opened on:  13 Jan 2018, 16:25:23
+
+. 
+. 
+. 
+. use "Dataset_3.dta", clear
+
+. 
+. ******************************************************************************************************************************
+. **** Build partner connection and creates the couples's labor characteristic variable
+. ******************************************************************************************************************************
+. 
+. 
+. ** I keep only the married couples who live together
+. keep if marst==1
+(9,366,218 observations deleted)
+
+. 
+. ** Among married individuals, some observations don't report the partner's id. I drop them
+. drop if cpsidp_sp==.  // 218 deleted
+(229 observations deleted)
+
+. 
+. 
+. sort cpsidp_sp
+
+. order cpsid cpsidp_sp cpsidp
+
+. 
+. 
+. foreach x of var * {   // rename all of the variables as the "spouse variable"
+  2.         rename `x' `x'_sp 
+  3. }
+
+. *
+. 
+. 
+. rename cpsid_sp cpsid
+
+. rename cpsidp_sp cpsidp
+
+. rename cpsidp_sp_sp cpsidp_sp
+
+. rename year_sp year  
+
+. rename month_sp month  // take it back to the original after the loop
+
+. 
+. 
+. rename cpsidp_sp cpsidp_temp 
+
+. rename cpsidp cpsidp_sp_temp
+
+. 
+. rename cpsidp_temp cpsidp
+
+. rename cpsidp_sp_temp cpsidp_sp //  careful: I do this to match the partners with the references: but while the original cpsidp is present and non-missing for every observation, cpsidp_sp is missing for many
+
+. 
+. 
+. 
+. save "Partners_tmp.dta", replace
+(note: file Partners_tmp.dta not found)
+file Partners_tmp.dta saved
+
+. use "Dataset_3.dta", clear
+
+. 
+. merge 1:1 cpsidp year month using "partners_tmp.dta"
+(label educ already defined)
+(label race already defined)
+(label ind already defined)
+(label occ already defined)
+(label flows already defined)
+(label mish_lbl already defined)
+(label hhtenure_lbl already defined)
+(label statefip_lbl already defined)
+(label month_lbl already defined)
+(label relate_lbl already defined)
+(label age_lbl already defined)
+(label sex_lbl already defined)
+(label race_lbl already defined)
+(label marst_lbl already defined)
+(label educ_lbl already defined)
+(label empstat_lbl already defined)
+(label labforce_lbl already defined)
+(label occ1950_lbl already defined)
+(label ind1950_lbl already defined)
+(label classwkr_lbl already defined)
+(label uhrsworkt_lbl already defined)
+(label uhrswork1_lbl already defined)
+(label paidhour_lbl already defined)
+(label lfproxy_lbl already defined)
+(label eligorg_lbl already defined)
+(label otpay_lbl already defined)
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                    10,585,457
+        from master                 9,975,952  (_merge==1)
+        from using                    609,505  (_merge==2)
+
+    matched                        11,775,254  (_merge==3)
+    -----------------------------------------
+
+. 
+. drop if _merge==2  // Two things can happen: we can have that a person is not married and this goes to master only. But we can also have that the person is married, we have the identifier but for that specific mo
+> nth and year that person (the partner) is missing and is therefore not present as cpsidp in the dataset_03    
+(609,505 observations deleted)
+
+. drop _merge
+
+. 
+. erase "Partners_tmp.dta"
+
+. save "Partners_tmp.dta", replace
+(note: file Partners_tmp.dta not found)
+file Partners_tmp.dta saved
+
+. 
+. 
+. 
+. 
+. ******************************************************************************************************************************
+. **** Create the couples's labor characteristic variable
+. ******************************************************************************************************************************
+. 
+. **** I keep only the variables I need for this computation: I WANT TO HAVE THE FIRST LETTER TO BE RELATIVE TO THE MALE THEREFORE I HAVE TO DO ALL THIS MERGE
+. keep cpsid cpsidp year month sex child_18 relate marst empstat labforce tran cpsidp_sp sex_sp marst_sp empstat_sp labforce_sp mish
+
+. 
+. ** Drop if partner's employment status is missing
+. drop if empstat_sp==.     // 605,696 deleted
+(9,975,952 observations deleted)
+
+. 
+. ** I now need to define the observation related to the couple. That is, I have to be careful not to count one couple twice, once for each partner, I can just get rid of the female.
+. drop if sex== 2
+(5,887,627 observations deleted)
+
+. 
+. 
+. *** Create a new variable wich indicates the labor market caracteristic of the couple, according to the definition of Nezih.
+. gen couple_labor=0
+
+. 
+. ** UE ( first letter: male; second letter: spouse )
+. replace couple_labor=1 if ( empstat==21 | empstat==22 ) & ( empstat_sp==10 | empstat_sp==12 | empstat_sp==01 )
+(108,695 real changes made)
+
+. 
+. ** EU
+. replace couple_labor=2 if ( empstat==10 | empstat==12 | empstat==01 ) & ( empstat_sp==21 | empstat_sp==22 )
+(114,904 real changes made)
+
+. 
+. ** EE
+. replace couple_labor=3 if ( empstat==10 | empstat==12 | empstat==01 ) &  ( empstat_sp==10 | empstat_sp==12 | empstat_sp==01 ) 
+(3,641,374 real changes made)
+
+. 
+. ** NE
+. replace couple_labor=4 if labforce==01 &  ( empstat_sp==10 | empstat_sp==12 | empstat_sp==01 ) 
+(323,495 real changes made)
+
+. 
+. ** EN
+. replace couple_labor=5 if ( empstat==10 | empstat==12 | empstat==01 ) & labforce_sp==01 
+(1,313,658 real changes made)
+
+. 
+. ** UN
+. replace couple_labor=6 if ( empstat==21 | empstat==22 ) & labforce_sp==01 
+(42,709 real changes made)
+
+. 
+. ** NU
+. replace couple_labor=7 if labforce==01 & ( empstat_sp==21 | empstat_sp==22 )
+(14,328 real changes made)
+
+. 
+. ** UU
+. replace couple_labor=8 if ( empstat==21 | empstat==22 ) &  ( empstat_sp==21 | empstat_sp==22 )
+(15,220 real changes made)
+
+. 
+. ** NN
+. replace couple_labor=9 if labforce==01 &  labforce_sp==01
+(313,244 real changes made)
+
+. 
+. ** Define the value labels
+. label define link 1 "UE" 2 "EU" 3 "EE" 4 "NE" 5 "EN" 6 "UN" 7 "NU" 8 "UU" 9 "NN"
+
+. label values couple_labor link
+
+. 
+. 
+. save "Partners_tmp_2.dta", replace
+(note: file Partners_tmp_2.dta not found)
+file Partners_tmp_2.dta saved
+
+. use "Partners_tmp.dta", clear
+
+. 
+. 
+. merge 1:1 cpsidp year month using "Partners_tmp_2.dta"
+(label labforce_lbl already defined)
+(label empstat_lbl already defined)
+(label marst_lbl already defined)
+(label sex_lbl already defined)
+(label relate_lbl already defined)
+(label month_lbl already defined)
+(label mish_lbl already defined)
+(label flows already defined)
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                    15,863,579
+        from master                15,863,579  (_merge==1)
+        from using                          0  (_merge==2)
+
+    matched                         5,887,627  (_merge==3)
+    -----------------------------------------
+
+. drop _merge
+
+. 
+. 
+. erase "Partners_tmp_2.dta"
+
+. 
+. 
+. 
+. 
+. 
+. cd "$directory/Selection_05"
+/Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_05
+
+. 
+. save "Partners.dta", replace
+file Partners.dta saved
+
+. 
+. 
+. 
+. cd "$directory/Selection_03"
+/Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_03
+
+. 
+. erase "Partners_tmp.dta"
+
+. 
+. log close main_04
+      name:  main_04
+       log:  /Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_03/main_04.log
+  log type:  text
+ closed on:  13 Jan 2018, 16:37:49
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

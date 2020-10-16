@@ -1,0 +1,582 @@
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  main_03
+       log:  /Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_03/main_03.log
+  log type:  text
+ opened on:  13 Jan 2018, 16:19:13
+
+. 
+. 
+. use "Dataset_3.dta", clear
+
+. 
+. ******************************************************************************************************************************
+. **** This script computes the general labor transition rates and the aggregate unemployment rate 
+. ******************************************************************************************************************************
+. 
+. 
+. ** I just need the following variables
+. keep cpsidp year month sex empstat tran wtfinl agr_pa
+
+. 
+. ** I create a variable which contains the broad category of Employed, Unemployed, Not in the labor force. Careful! It refer to the previous observation in time! Hence is not consistent with empstat.
+. gen empstat_broad = 0, before(tran)
+
+. replace empstat_broad =1 if ( tran == 2 | tran == 3 | tran == 5 )
+(10,374,474 real changes made)
+
+. replace empstat_broad =2 if ( tran == 1 | tran == 6 | tran == 8 )
+(612,762 real changes made)
+
+. replace empstat_broad =3 if ( tran == 7 | tran == 9 | tran == 4 )
+(3,435,577 real changes made)
+
+. 
+. * Define the value labels
+. label define flows_1 1 "E" 2 "U" 3 "N" 
+
+. label values empstat_broad flows_1
+
+. 
+. 
+. ** Sort the data
+. sort year month empstat_broad sex
+
+. 
+. ** Unemployment rate
+. gen unEmp = 0
+
+. replace unEmp = 1 if ( empstat == 21 | empstat == 22) & agr_pa[_n] != 1
+(837,302 real changes made)
+
+. by year month: egen unEmp_mr = total(unEmp)
+
+. 
+. gen Emp = 0
+
+. replace Emp = 1 if ( empstat == 10 | empstat == 12) & agr_pa[_n] != 1
+(14,618,350 real changes made)
+
+. by year month: egen Emp_mr = total(Emp)
+
+. 
+. gen UnEmp_rate = unEmp_mr / ( unEmp_mr + Emp_mr )
+
+. drop unEmp unEmp_mr Emp Emp_mr
+
+. 
+. ** I drop invalid transitions
+. drop if tran==0  // (.)
+(7,328,393 observations deleted)
+
+. 
+. 
+. **** Compute the general transition rates       
+. 
+. ** For every combination of year momth and empstat_broad (which is defined with respect
+. ** to the fisrt status of the transtion which refers to the previous observation)
+. ** the script computes percentages of every type of transition. So for E there will 
+. ** be the one of EE, EU, EN and will be zero for the other because by definition
+. ** there is none. Given this, I then change the value from zero to missing.
+. 
+. *** General
+. 
+. ** E-->E
+. generate EE_ind = tran == 3
+
+. by year month empstat_broad: egen EE_mr = wtmean(100 * EE_ind), weight(wtfinl)
+
+. 
+. ** E-->U 
+. generate EU_ind = tran == 2
+
+. by year month empstat_broad: egen EU_mr = wtmean(100 * EU_ind), weight(wtfinl)
+
+. 
+. ** E-->N
+. generate EN_ind = tran == 5
+
+. by year month empstat_broad: egen EN_mr = wtmean(100 * EN_ind), weight(wtfinl)
+
+. 
+. ** U-->E
+. generate UE_ind = tran == 1
+
+. by year month empstat_broad: egen UE_mr = wtmean(100 * UE_ind), weight(wtfinl)
+
+. 
+. ** U-->U
+. generate UU_ind = tran == 8
+
+. by year month empstat_broad: egen UU_mr = wtmean(100 * UU_ind), weight(wtfinl)
+
+. 
+. ** U-->N
+. generate UN_ind = tran == 6
+
+. by year month empstat_broad: egen UN_mr = wtmean(100 * UN_ind), weight(wtfinl)
+
+. 
+. ** N-->E
+. generate NE_ind = tran == 4
+
+. by year month empstat_broad: egen NE_mr = wtmean(100 * NE_ind), weight(wtfinl)
+
+. 
+. ** N-->U
+. generate NU_ind = tran == 7
+
+. by year month empstat_broad: egen NU_mr = wtmean(100 * NU_ind), weight(wtfinl)
+
+. 
+. ** N-->N
+. generate NN_ind = tran == 9
+
+. by year month empstat_broad: egen NN_mr = mean(100 * NN_ind)
+
+. 
+. drop UE_ind EU_ind EE_ind NE_ind EN_ind UN_ind NU_ind UU_ind NN_ind
+
+. 
+. foreach x of varlist UE_mr EU_mr EE_mr NE_mr EN_mr UN_mr NU_mr UU_mr NN_mr  {  
+  2.         replace `x'=. if `x'==0 
+  3. }
+(13,810,051 real changes made, 13,810,051 to missing)
+(4,048,339 real changes made, 4,048,339 to missing)
+(4,048,339 real changes made, 4,048,339 to missing)
+(10,987,236 real changes made, 10,987,236 to missing)
+(4,048,339 real changes made, 4,048,339 to missing)
+(13,810,051 real changes made, 13,810,051 to missing)
+(10,987,236 real changes made, 10,987,236 to missing)
+(13,810,051 real changes made, 13,810,051 to missing)
+(10,987,236 real changes made, 10,987,236 to missing)
+
+. *
+. 
+. *** Conditional on gender
+. 
+. ** Females
+. 
+. ** E-->E
+. generate EE_ind = tran == 3 if sex == 2
+(6,835,122 missing values generated)
+
+. by year month empstat_broad sex: egen EE_mr_f = wtmean(100 * EE_ind), weight(wtfinl)
+(6835122 missing values generated)
+
+. 
+. ** E-->U 
+. generate EU_ind = tran == 2 if sex == 2
+(6,835,122 missing values generated)
+
+. by year month empstat_broad sex: egen EU_mr_f = wtmean(100 * EU_ind), weight(wtfinl)
+(6835122 missing values generated)
+
+. 
+. ** E-->N
+. generate EN_ind = tran == 5 if sex == 2
+(6,835,122 missing values generated)
+
+. by year month empstat_broad sex: egen EN_mr_f = wtmean(100 * EN_ind), weight(wtfinl)
+(6835122 missing values generated)
+
+. 
+. ** U-->E
+. generate UE_ind = tran == 1 if sex == 2
+(6,835,122 missing values generated)
+
+. by year month empstat_broad sex: egen UE_mr_f = wtmean(100 * UE_ind), weight(wtfinl)
+(6835122 missing values generated)
+
+. 
+. ** U-->U
+. generate UU_ind = tran == 8 if sex == 2
+(6,835,122 missing values generated)
+
+. by year month empstat_broad sex: egen UU_mr_f = wtmean(100 * UU_ind), weight(wtfinl)
+(6835122 missing values generated)
+
+. 
+. ** U-->N
+. generate UN_ind = tran == 6 if sex == 2
+(6,835,122 missing values generated)
+
+. by year month empstat_broad sex: egen UN_mr_f = wtmean(100 * UN_ind), weight(wtfinl)
+(6835122 missing values generated)
+
+. 
+. ** N-->E
+. generate NE_ind = tran == 4 if sex == 2
+(6,835,122 missing values generated)
+
+. by year month empstat_broad sex: egen NE_mr_f = wtmean(100 * NE_ind), weight(wtfinl)
+(6835122 missing values generated)
+
+. 
+. ** N-->U
+. generate NU_ind = tran == 7 if sex == 2
+(6,835,122 missing values generated)
+
+. by year month empstat_broad sex: egen NU_mr_f = wtmean(100 * NU_ind), weight(wtfinl)
+(6835122 missing values generated)
+
+. 
+. ** N-->N
+. generate NN_ind = tran == 9 if sex == 2
+(6,835,122 missing values generated)
+
+. by year month empstat_broad sex: egen NN_mr_f = wtmean(100 * NN_ind), weight(wtfinl)
+(6835122 missing values generated)
+
+. 
+. drop UE_ind EU_ind EE_ind NE_ind EN_ind UN_ind NU_ind UU_ind NN_ind
+
+. 
+. foreach x of varlist UE_mr_f EU_mr_f EE_mr_f NE_mr_f EN_mr_f UN_mr_f NU_mr_f UU_mr_f NN_mr_f  {  
+  2.         replace `x'=. if `x'==0 
+  3. }
+(7,304,632 real changes made, 7,304,632 to missing)
+(2,544,982 real changes made, 2,544,982 to missing)
+(2,544,982 real changes made, 2,544,982 to missing)
+(5,325,768 real changes made, 5,325,768 to missing)
+(2,544,982 real changes made, 2,544,982 to missing)
+(7,304,632 real changes made, 7,304,632 to missing)
+(5,325,768 real changes made, 5,325,768 to missing)
+(7,304,632 real changes made, 7,304,632 to missing)
+(5,325,768 real changes made, 5,325,768 to missing)
+
+. *
+. 
+. ** Males
+. 
+. ** E-->E
+. generate EE_ind = tran == 3 if sex == 1
+(7,587,691 missing values generated)
+
+. by year month empstat_broad sex: egen EE_mr_m = wtmean(100 * EE_ind), weight(wtfinl)
+(7587691 missing values generated)
+
+. 
+. ** E-->U 
+. generate EU_ind = tran == 2 if sex == 1
+(7,587,691 missing values generated)
+
+. by year month empstat_broad sex: egen EU_mr_m = wtmean(100 * EU_ind), weight(wtfinl)
+(7587691 missing values generated)
+
+. 
+. ** E-->N
+. generate EN_ind = tran == 5 if sex == 1
+(7,587,691 missing values generated)
+
+. by year month empstat_broad sex: egen EN_mr_m = wtmean(100 * EN_ind), weight(wtfinl)
+(7587691 missing values generated)
+
+. 
+. ** U-->E
+. generate UE_ind = tran == 1 if sex == 1
+(7,587,691 missing values generated)
+
+. by year month empstat_broad sex: egen UE_mr_m = wtmean(100 * UE_ind), weight(wtfinl)
+(7587691 missing values generated)
+
+. 
+. ** U-->U
+. generate UU_ind = tran == 8 if sex == 1
+(7,587,691 missing values generated)
+
+. by year month empstat_broad sex: egen UU_mr_m = wtmean(100 * UU_ind), weight(wtfinl)
+(7587691 missing values generated)
+
+. 
+. ** U-->N
+. generate UN_ind = tran == 6 if sex == 1
+(7,587,691 missing values generated)
+
+. by year month empstat_broad sex: egen UN_mr_m = wtmean(100 * UN_ind), weight(wtfinl)
+(7587691 missing values generated)
+
+. 
+. ** N-->E
+. generate NE_ind = tran == 4 if sex == 1
+(7,587,691 missing values generated)
+
+. by year month empstat_broad sex: egen NE_mr_m = wtmean(100 * NE_ind), weight(wtfinl)
+(7587691 missing values generated)
+
+. 
+. ** N-->U
+. generate NU_ind = tran == 7 if sex == 1
+(7,587,691 missing values generated)
+
+. by year month empstat_broad sex: egen NU_mr_m = wtmean(100 * NU_ind), weight(wtfinl)
+(7587691 missing values generated)
+
+. 
+. ** N-->N
+. generate NN_ind = tran == 9 if sex == 1
+(7,587,691 missing values generated)
+
+. by year month empstat_broad sex: egen NN_mr_m = wtmean(100 * NN_ind), weight(wtfinl)
+(7587691 missing values generated)
+
+. 
+. drop UE_ind EU_ind EE_ind NE_ind EN_ind UN_ind NU_ind UU_ind NN_ind
+
+. 
+. foreach x of varlist UE_mr_m EU_mr_m EE_mr_m NE_mr_m EN_mr_m UN_mr_m NU_mr_m UU_mr_m NN_mr_m  {  
+  2.         replace `x'=. if `x'==0 
+  3. }
+(6,505,419 real changes made, 6,505,419 to missing)
+(1,503,357 real changes made, 1,503,357 to missing)
+(1,503,357 real changes made, 1,503,357 to missing)
+(5,661,468 real changes made, 5,661,468 to missing)
+(1,503,357 real changes made, 1,503,357 to missing)
+(6,505,419 real changes made, 6,505,419 to missing)
+(5,661,468 real changes made, 5,661,468 to missing)
+(6,505,419 real changes made, 6,505,419 to missing)
+(5,661,468 real changes made, 5,661,468 to missing)
+
+. *
+. 
+. save "until_here", replace
+file until_here.dta saved
+
+. 
+. 
+. ** Collapse the dataset: one obs for each month year combination: the percentage of t
+. 
+. collapse UnEmp_rate EE_mr EU_mr EN_mr UE_mr UU_mr UN_mr NE_mr NU_mr NN_mr EE_mr_f EU_mr_f EN_mr_f UE_mr_f UU_mr_f UN_mr_f NE_mr_f NU_mr_f NN_mr_f EE_mr_m EU_mr_m EN_mr_m UE_mr_m UU_mr_m UN_mr_m NE_mr_m NU_mr_m NN
+> _mr_m, by( year month empstat_broad sex )
+
+. 
+. 
+. *** Graphs
+. 
+. ** generate the time variable
+. gen time=ym(year ,month), after(month)
+
+. 
+. ** lable
+. 
+. label var EE_mr_f "female"
+
+. label var EU_mr_f "female"
+
+. label var EN_mr_f "female"
+
+. label var UE_mr_f "female"
+
+. label var UU_mr_f "female"
+
+. label var UN_mr_f "female"
+
+. label var NE_mr_f "female"
+
+. label var NU_mr_f "female"
+
+. label var NN_mr_f "female"
+
+. 
+. label var EE_mr_m "male"
+
+. label var EU_mr_m "male"
+
+. label var EN_mr_m "male"
+
+. label var UE_mr_m "male"
+
+. label var UU_mr_m "male"
+
+. label var UN_mr_m "male"
+
+. label var NE_mr_m "male"
+
+. label var NU_mr_m "male"
+
+. label var NN_mr_m "male"
+
+. 
+. graph drop _all
+
+. 
+. ** general
+. 
+. tw line EE_mr time , xtick(407.5(12)695.5, tlength(*1.5)) xlabel(425.5(24)689.5, noticks format(%tmYY))  xtitle("") name(EE) title("EE")
+
+. graph export "$directory/Selection_04/General/EE.png" , replace
+(file /Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_04/General/EE.png written in PNG format)
+
+. 
+. tw line EU_mr time , xtick(407.5(12)695.5, tlength(*1.5)) xlabel(425.5(24)689.5, noticks format(%tmYY))  xtitle("") name(EU) title("EU")
+
+. graph export "$directory/Selection_04/General/EU.png" , replace
+(file /Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_04/General/EU.png written in PNG format)
+
+. 
+. tw line EN_mr time , xtick(407.5(12)695.5, tlength(*1.5)) xlabel(425.5(24)689.5, noticks format(%tmYY))  xtitle("") name(EN) title("EN")
+
+. graph export "$directory/Selection_04/General/EN.png" , replace
+(file /Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_04/General/EN.png written in PNG format)
+
+. 
+. tw line UE_mr time , xtick(407.5(12)695.5, tlength(*1.5)) xlabel(425.5(24)689.5, noticks format(%tmYY))  xtitle("") name(UE) title("UE")
+
+. graph export "$directory/Selection_04/General/UE.png" , replace
+(file /Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_04/General/UE.png written in PNG format)
+
+. 
+. tw line UU_mr time , xtick(407.5(12)695.5, tlength(*1.5)) xlabel(425.5(24)689.5, noticks format(%tmYY))  xtitle("") name(UU) title("UU")
+
+. graph export "$directory/Selection_04/General/UU.png" , replace
+(file /Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_04/General/UU.png written in PNG format)
+
+. 
+. tw line UN_mr time , xtick(407.5(12)695.5, tlength(*1.5)) xlabel(425.5(24)689.5, noticks format(%tmYY))  xtitle("") name(UN) title("UN")
+
+. graph export "$directory/Selection_04/General/UN.png" , replace
+(file /Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_04/General/UN.png written in PNG format)
+
+. 
+. tw line NE_mr time , xtick(407.5(12)695.5, tlength(*1.5)) xlabel(425.5(24)689.5, noticks format(%tmYY))  xtitle("") name(NE) title("NE")
+
+. graph export "$directory/Selection_04/General/NE.png" , replace
+(file /Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_04/General/NE.png written in PNG format)
+
+. 
+. tw line NU_mr time , xtick(407.5(12)695.5, tlength(*1.5)) xlabel(425.5(24)689.5, noticks format(%tmYY))  xtitle("") name(NU) title("NU")
+
+. graph export "$directory/Selection_04/General/NU.png" , replace
+(file /Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_04/General/NU.png written in PNG format)
+
+. 
+. tw line NN_mr time , xtick(407.5(12)695.5, tlength(*1.5)) xlabel(425.5(24)689.5, noticks format(%tmYY))  xtitle("") name(NN) title("NN")
+
+. graph export "$directory/Selection_04/General/NN.png" , replace
+(file /Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_04/General/NN.png written in PNG format)
+
+. 
+. 
+. 
+. ** Female Male
+. 
+. tw line EE_mr_m EE_mr_f time , xtick(407.5(12)695.5, tlength(*1.5)) xlabel(425.5(24)689.5, noticks format(%tmYY))  xtitle("") name(EE_gender) title("EE") lpattern(solid longdash)
+
+. graph export "$directory/Selection_04/Gender/EE_gender.png" , replace
+(file /Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_04/Gender/EE_gender.png written in PNG format)
+
+. 
+. tw line EU_mr_m EU_mr_f time , xtick(407.5(12)695.5, tlength(*1.5)) xlabel(425.5(24)689.5, noticks format(%tmYY))  xtitle("") name(EU_gender) title("EU") lpattern(solid longdash)
+
+. graph export "$directory/Selection_04/Gender/EU_gender.png" , replace
+(file /Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_04/Gender/EU_gender.png written in PNG format)
+
+. 
+. tw line EN_mr_m EN_mr_f time , xtick(407.5(12)695.5, tlength(*1.5)) xlabel(425.5(24)689.5, noticks format(%tmYY))  xtitle("") name(EN_gender) title("EN") lpattern(solid longdash)
+
+. graph export "$directory/Selection_04/Gender/EN_gender.png" , replace
+(file /Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_04/Gender/EN_gender.png written in PNG format)
+
+. 
+. tw line UE_mr_m UE_mr_f time , xtick(407.5(12)695.5, tlength(*1.5)) xlabel(425.5(24)689.5, noticks format(%tmYY))  xtitle("") name(UE_gender) title("UE") lpattern(solid longdash)
+
+. graph export "$directory/Selection_04/Gender/UE_gender.png" , replace
+(file /Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_04/Gender/UE_gender.png written in PNG format)
+
+. 
+. tw line UU_mr_m UU_mr_f time , xtick(407.5(12)695.5, tlength(*1.5)) xlabel(425.5(24)689.5, noticks format(%tmYY))  xtitle("") name(UU_gender) title("UU") lpattern(solid longdash)
+
+. graph export "$directory/Selection_04/Gender/UU_gender.png" , replace
+(file /Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_04/Gender/UU_gender.png written in PNG format)
+
+. 
+. tw line UN_mr_m UN_mr_f time , xtick(407.5(12)695.5, tlength(*1.5)) xlabel(425.5(24)689.5, noticks format(%tmYY))  xtitle("") name(UN_gender) title("UN") lpattern(solid longdash)
+
+. graph export "$directory/Selection_04/Gender/UN_gender.png" , replace
+(file /Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_04/Gender/UN_gender.png written in PNG format)
+
+. 
+. tw line NE_mr_m NE_mr_f time , xtick(407.5(12)695.5, tlength(*1.5)) xlabel(425.5(24)689.5, noticks format(%tmYY))  xtitle("") name(NE_gender) title("NE") lpattern(solid longdash)
+
+. graph export "$directory/Selection_04/Gender/NE_gender.png" , replace
+(file /Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_04/Gender/NE_gender.png written in PNG format)
+
+. 
+. tw line NU_mr_m NU_mr_f time , xtick(407.5(12)695.5, tlength(*1.5)) xlabel(425.5(24)689.5, noticks format(%tmYY))  xtitle("") name(NU_gender) title("NU") lpattern(solid longdash)
+
+. graph export "$directory/Selection_04/Gender/NU_gender.png" , replace
+(file /Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_04/Gender/NU_gender.png written in PNG format)
+
+. 
+. tw line NN_mr_m NN_mr_f time , xtick(407.5(12)695.5, tlength(*1.5)) xlabel(425.5(24)689.5, noticks format(%tmYY))  xtitle("") name(NN_gender) title("NN") lpattern(solid longdash)
+
+. graph export "$directory/Selection_04/Gender/NN_gender.png" , replace
+(file /Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_04/Gender/NN_gender.png written in PNG format)
+
+. 
+. 
+. 
+. ** Manipulates the final aggregate dataset
+. drop sex time empstat_broad
+
+. collapse UnEmp_rate EE_mr EU_mr EN_mr UE_mr UU_mr UN_mr NE_mr NU_mr NN_mr EE_mr_f EU_mr_f EN_mr_f UE_mr_f UU_mr_f UN_mr_f NE_mr_f NU_mr_f NN_mr_f EE_mr_m EU_mr_m EN_mr_m UE_mr_m UU_mr_m UN_mr_m NE_mr_m NU_mr_m NN
+> _mr_m, by ( year month )
+
+. label var UnEmp_rate "Unemployment rate"
+
+. label var EE_mr_f "female"
+
+. label var EU_mr_f "female"
+
+. label var EN_mr_f "female"
+
+. label var UE_mr_f "female"
+
+. label var UU_mr_f "female"
+
+. label var UN_mr_f "female"
+
+. label var NE_mr_f "female"
+
+. label var NU_mr_f "female"
+
+. label var NN_mr_f "female"
+
+. 
+. label var EE_mr_m "male"
+
+. label var EU_mr_m "male"
+
+. label var EN_mr_m "male"
+
+. label var UE_mr_m "male"
+
+. label var UU_mr_m "male"
+
+. label var UN_mr_m "male"
+
+. label var NE_mr_m "male"
+
+. label var NU_mr_m "male"
+
+. label var NN_mr_m "male"
+
+. 
+. 
+. cd "$directory/Selection_04"
+/Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_04
+
+. 
+. save "Dataset_4.dta", replace
+file Dataset_4.dta saved
+
+. 
+. cd "$directory/Selection_03"
+/Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_03
+
+. 
+. log close main_03
+      name:  main_03
+       log:  /Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_03/main_03.log
+  log type:  text
+ closed on:  13 Jan 2018, 16:25:23
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

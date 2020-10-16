@@ -1,0 +1,261 @@
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  main_08
+       log:  /Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_05/main_08.log
+  log type:  text
+ opened on:  13 Jan 2018, 16:45:49
+
+. 
+. 
+. 
+. ******************************************************************************************************************************
+. *** Selection of sample for the wage study.
+. ******************************************************************************************************************************
+. 
+. 
+. 
+. ******************************************************************************************************************************
+. *** For the analysis of the wage correlation I need both partners'wages, while for the regression I just need the partners' wages.
+. ******************************************************************************************************************************
+. 
+. 
+. use "Partners.dta", clear
+
+. 
+. 
+. ** Keep only the variable I need for this computation (maybe change later but now stay with it)
+. 
+. drop  cpsidp_sp eligorg eligorg_sp relate 
+
+. 
+. 
+. ** Keep only the married couples who live together
+. keep if marst==1
+(9,366,218 observations deleted)
+
+. drop marst
+
+. 
+. ** Keep only Outgoing Rotation Group 
+. keep if mish == 4 | mish == 8 
+(9,272,892 observations deleted)
+
+. 
+. ** Armed forces don't report wages, drop them
+. drop if empstat == 01
+(23,009 observations deleted)
+
+. * Drop if the partner is in the army
+. drop if empstat_sp == 01
+(22,122 observations deleted)
+
+. 
+. 
+. * Drop if there are no information about the partner; use age as proxy
+. drop if age_sp == . 
+(153,961 observations deleted)
+
+. 
+. 
+. * I get rid of that 13% of employed workers partners whose wage is not reported: paidhour == 0 implies that wages are not reported, both for hour and weekly wage
+. * This is to be done both for computing correlation and for regression, therefore i do it here.
+. drop if paidhour_sp == 0 & (empstat_sp == 10 | empstat_sp == 12)  // 13% of the sample until here.
+(311,174 observations deleted)
+
+. 
+. 
+. 
+. /* Now the employed partners are divided perfectly in those paid by hour 
+> and those not paid by hour */
+. 
+. * Nicest order so far, generalize
+. order cpsid cpsidp year month mish age sex race race_broad child_18 hhtenure hwtfinl statefip empstat labforce jtyears durunemp durunemp_pre tran tran1 rearnweek rhourwage earnweek hourwage uhrsworkorg paidhour o
+> tpay lfproxy earnwt ind1950 ind1950_broad ind1950_broad_pre occ1950 occ1950_broad occ1950_broad_pre switch switch1 agr_pa educ classwkr wtfinl mish_sp age_sp sex_sp race_sp race_broad_sp child_18_sp hhtenure_sp s
+> tatefip_sp empstat_sp labforce_sp jtyears_sp durunemp_sp durunemp_pre_sp tran_sp tran1_sp rearnweek_sp rhourwage_sp earnweek_sp hourwage_sp uhrsworkorg_sp paidhour_sp otpay_sp lfproxy_sp earnwt_sp ind1950_sp ind1
+> 950_broad_sp ind1950_broad_pre_sp occ1950_sp occ1950_broad_sp occ1950_broad_pre_sp switch_sp switch1_sp agr_pa_sp educ_sp classwkr_sp wtfinl_sp
+
+. 
+. 
+. ***************************************************************
+. save "ORG_couples.dta", replace
+file ORG_couples.dta saved
+
+. * use "ORG_couples.dta", clear
+. ***************************************************************
+. 
+. 
+. 
+. 
+. 
+. **** DESCRIPTIVE STATISTICS 
+. 
+. ***Hourwage
+. 
+. ** There are not topcoded hourwages
+. 
+. ** Dummy for not in the universe hourwage
+. gen dummy = 0
+
+. replace dummy = 1 if hourwage_sp == 99.99
+(1,574,711 real changes made)
+
+. label var dummy "NIU hourwage"
+
+. label define lab_0 0 "No" 1 "Yes" 
+
+. label values dummy lab_0
+
+. 
+. tab dummy if paidhour_sp == 1
+
+        NIU |
+   hourwage |      Freq.     Percent        Cum.
+------------+-----------------------------------
+        Yes |    921,359      100.00      100.00
+------------+-----------------------------------
+      Total |    921,359      100.00
+
+. tab dummy if paidhour_sp == 2
+
+        NIU |
+   hourwage |      Freq.     Percent        Cum.
+------------+-----------------------------------
+         No |  1,027,119       99.99       99.99
+        Yes |        132        0.01      100.00
+------------+-----------------------------------
+      Total |  1,027,251      100.00
+
+. 
+. 
+. /* Hourwage is reported for 99.99% of workers paid by hour. Ideally, to have 
+> to use this variable would be better. It is more informative indeed. */
+. 
+. 
+. 
+. 
+. 
+. *** Earnweek
+. 
+. ** Dummy for not in the universe earnweek
+. gen dummy3 = 0
+
+. replace dummy3 = 1 if earnweek_sp == 9999.99
+(653,225 real changes made)
+
+. label var dummy3 "NIU earnweek"
+
+. label define lab_3 0 "No" 1 "Yes" 
+
+. label values dummy3 lab_3
+
+. 
+. 
+. drop if dummy3 == 1 &  (empstat_sp == 10 | empstat_sp == 12 ) // 5 observations
+(5 observations deleted)
+
+. 
+. 
+. tab dummy3 if empstat_sp == 10 | empstat_sp == 12 // in the sample so created, everybody reports the earnweek.
+
+        NIU |
+   earnweek |      Freq.     Percent        Cum.
+------------+-----------------------------------
+         No |  1,948,605      100.00      100.00
+------------+-----------------------------------
+      Total |  1,948,605      100.00
+
+. 
+. 
+. ***************************************************************
+. * What follows does not have consequences on next operations, analysis of the characteristics of some wage variables.
+. ***************************************************************
+. 
+. /*
+> 
+> ** Dummy for top code earnweek
+> gen dummy4 = 0
+> replace dummy4 = 1 if earnweek == 1923 & ( year == 1990 | year == 1991 |year == 1992 |year == 1993 |year == 1994 |year == 1995 |year == 1996 |year == 1997 ) 
+> gen dummy5 = 0
+> replace dummy5 = 1 if earnweek == 2884.61 & year > 1990 
+> gen dummy6 = 0 
+> replace dummy6 = 1 if dummy4 ==1 | dummy5 ==1 // 1% top coded earnweek
+> 
+> 
+> *** Uhrsworkorg
+> 
+> ** Dummy for NIU
+> gen dummy7 = 0
+> replace dummy7 = 1 if uhrsworkorg == 0 // zero 
+> 
+> ** Dummy for don't know
+> gen dummy8 = 0 
+> replace dummy8 = 1 if uhrsworkorg == 998 //
+> 
+> ** Dummy for don't know (999)
+> gen dummy9 = 0 
+> replace dummy9 = 1 if uhrsworkorg == 999 // 
+> label var dummy9 "NIU uhrsworkorg"
+> label define lab_9 0 "No" 1 "Yes" 
+> label values dummy9 lab_9
+> 
+> tab dummy8 if empstat == 10 | empstat == 12
+> tab dummy9 if empstat == 10 | empstat == 12 // 60.7% of the employed don't know how many hour they work.
+> 
+> 
+> 
+> * After this trimming, the percentages are:
+> tab paidhour if empstat == 10 | empstat == 12 // 40% no, 60% yes.
+> 
+> tab dummy9 if empstat == 10 | empstat == 12 // 60%  dont report the hoursworked. 
+> tab dummy9 if (empstat == 10 | empstat == 12) & paidhour == 2 // Of those paid by hour, 25% don't know how many hours they work.
+> tab dummy9 if (empstat == 10 | empstat == 12) & paidhour == 1 // Of those not paid by hour, 100% don't know how many hours they work.
+> tab dummy if (empstat == 10 | empstat == 12) & paidhour == 2 // Of those paid by hour, 99.99% report their hour wage rate.
+> 
+> tab dummy if (empstat == 10 | empstat == 12) & paidhour == 2 // Of those paid by hour, 99.99% report their hour wage rate.
+> 
+> tab dummy3 if empstat == 10 | empstat == 12 & paidhour == 1 // Of those not paid by hour 100% report their wage.
+> 
+> drop dummy dummy2 dummy3 dummy4 dummy5 dummy6 dummy7 dummy8 dummy9
+> 
+> */
+. 
+. 
+. 
+. 
+. 
+. ** Assign a zero wage to those who are unemployed or NILF
+. replace rhourwage = 0 if empstat != 10 & empstat != 12
+(596,783 real changes made)
+
+. replace rhourwage_sp = 0 if empstat_sp != 10 & empstat_sp != 12
+(653,220 real changes made)
+
+. 
+. replace rearnweek = 0 if empstat != 10 & empstat != 12
+(596,783 real changes made)
+
+. replace rearnweek_sp = 0 if empstat_sp != 10 & empstat_sp != 12
+(653,220 real changes made)
+
+. 
+. 
+. 
+. 
+. cd "$directory/Selection_09"
+/Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_09
+
+. 
+. save "Earner_study.dta", replace
+file Earner_study.dta saved
+
+. 
+. 
+. cd "$directory/Selection_05"
+/Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_05
+
+. 
+. log close main_08
+      name:  main_08
+       log:  /Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_05/main_08.log
+  log type:  text
+ closed on:  13 Jan 2018, 16:48:16
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
