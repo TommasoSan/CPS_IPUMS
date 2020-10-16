@@ -1,9 +1,12 @@
 # CPS_IPUMS
 
-- Download the data from here: https://cps.ipums.org/cps/. See the needed variables in the pdf document "variables" in the folder "documents".
+- Download the data from here: https://cps.ipums.org/cps/. The folder "documents" contains:
+    - A list of the variables needed to run the codes
+    - A diagram of the structure of the code
+    - A description of the variables in the final steady state "Aggregate.dta"
 
 - What do these codes do:
-    - Dataset cleaning
+    - Data cleaning
     - Monthly transitions between employment status
     - Creates a new dataset with partner information for every individual and computes transition rates and unemployment durations conditional on partner status.
 
