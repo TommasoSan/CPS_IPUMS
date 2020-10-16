@@ -1,0 +1,261 @@
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  main_01
+       log:  /Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_01/main_01.log
+  log type:  text
+ opened on:  13 Jan 2018, 16:13:46
+
+. 
+. 
+. use "dataset_1.dta", clear
+
+. 
+. ******************************************************************************************************************************
+. **** This script gets the raw data, analyzes the errors, and performs the trimming strategy. Note: the data are already sorted: cpsidp year month
+. ******************************************************************************************************************************
+. 
+. 
+. keep cpsid cpsidp year month age sex race marst ind1950 relate
+
+. 
+. 
+. ******************************************************************************************************************************
+. 
+. *** check whether CPSIDP is correct:
+. 
+. ** check with age (one year tolerance)
+. gen check_age_tol=0
+
+. replace  check_age_tol=1 if cpsidp[_n]==cpsidp[_n-1]   &  age[_n] != age[_n-1]   &   age[_n] != age[_n-1]+1   &   age[_n] != age[_n-1]+2
+(474,077 real changes made)
+
+. 
+. by cpsidp: egen check_1_age_tol = total(check_age_tol)
+
+. 
+. gen  check_2_age_tol=0
+
+. replace check_2_age_tol=1 if check_1_age_tol != 0  // 6% 
+(2,356,882 real changes made)
+
+. 
+. 
+. 
+. ** check with age (zero tolerance)
+. gen check_age=0
+
+. replace check_age=1 if cpsidp[_n]==cpsidp[_n-1]   &  age[_n] != age[_n-1]   &   age[_n] != age[_n-1]+1  
+(527,042 real changes made)
+
+. 
+. by cpsidp: egen check_1_age = total(check_age)
+
+. 
+. gen check_2_age=0
+
+. replace check_2_age=1 if check_1_age != 0  //  7%
+(2,604,496 real changes made)
+
+. 
+. 
+. ** check with sex:
+. gen check_sex=0
+
+. replace check_sex=1 if cpsidp[_n]==cpsidp[_n-1] & sex[_n] != sex[_n-1] 
+(104,481 real changes made)
+
+. 
+. by cpsidp: egen check_1_sex = total(check_sex)
+
+. 
+. gen check_2_sex=0 //
+
+. replace check_2_sex=1 if check_1_sex != 0  // 1%
+(523,028 real changes made)
+
+. 
+. 
+. ** check with race:
+. gen check_race=0
+
+. replace check_race=1 if cpsidp[_n]==cpsidp[_n-1] &  race[_n] != race[_n-1] 
+(101,652 real changes made)
+
+. 
+. by cpsidp: egen check_1_race = total(check_race)
+
+. 
+. gen check_2_race=0
+
+. replace check_2_race=1 if check_1_race != 0  // 1%
+(551,504 real changes made)
+
+. 
+. 
+. ** check with marital status (just for double check)
+. gen check_mar=0
+
+. replace check_mar=1 if cpsidp[_n]==cpsidp[_n-1] &  marst[_n] != marst[_n-1] 
+(433,690 real changes made)
+
+. 
+. by cpsidp: egen check_1_mar = total(check_mar)
+
+. 
+. gen check_2_mar=0
+
+. replace check_2_mar=1 if check_1_mar != 0 
+(2,112,128 real changes made)
+
+. 
+. ** check with industry (just for double check)
+. gen check_ind=0
+
+. replace check_ind=1 if cpsidp[_n]==cpsidp[_n-1] &  ind1950[_n] != ind1950[_n-1] 
+(2,690,271 real changes made)
+
+. 
+. by cpsidp: egen check_1_ind = total(check_ind)
+
+. 
+. gen check_2_ind=0
+
+. replace check_2_ind=1 if check_1_ind != 0 
+(10,216,324 real changes made)
+
+. 
+. 
+. ** check with positon in th hh (just for double check)
+. gen check_hh=0
+
+. replace check_hh=1 if cpsidp[_n]==cpsidp[_n-1] &  relate[_n] != relate[_n-1] 
+(175,986 real changes made)
+
+. 
+. by cpsidp: egen check_1_hh = total(check_hh)
+
+. 
+. gen check_2_hh=0
+
+. replace check_2_hh=1 if check_1_hh != 0 
+(945,521 real changes made)
+
+. 
+. 
+. 
+. ******************************************************************************************************************************
+. 
+. 
+. *** Trimming strategy
+. 
+. 
+. ** Keep only between 18 and 65
+. keep if age >= 18 & age <= 65 
+(14,179,223 observations deleted)
+
+. 
+. 
+. ** I also drop the problematic months. Not possible to link observations. 
+. drop if year == 1995 & ( month == 5 | month == 6 |month == 7 |month == 8 |month == 9 ) 
+(423,498 observations deleted)
+
+. drop if year == 1994 & month ==1   
+(85,789 observations deleted)
+
+. 
+. 
+. ** Drop errors
+. drop if check_2_age_tol==1  &  check_2_race==1
+(159,064 observations deleted)
+
+. drop if check_2_age_tol==1  &  check_2_sex==1
+(211,889 observations deleted)
+
+. drop if check_2_age_tol==1  &  check_2_mar==1 
+(254,403 observations deleted)
+
+. drop if check_2_age_tol==1  &  check_2_hh==1 
+(41,156 observations deleted)
+
+. * so I keep 258,513 that jump more than two years of age but these other variables are consistent.
+. 
+. 
+. drop if check_2_age==1 & check_2_race==1  // 9186 deleted 
+(5,981 observations deleted)
+
+. drop if check_2_age==1 & check_2_sex==1   // 10979 deleted
+(7,413 observations deleted)
+
+. drop if check_2_race==1 & check_2_sex==1  // 7173 deleted
+(4,738 observations deleted)
+
+. drop if check_2_age_tol==1 & check_2_ind==1 //482,382 deleted
+(360,985 observations deleted)
+
+. 
+. drop check_age_tol check_1_age_tol check_2_age_tol check_age check_1_age check_2_age check_sex check_1_sex check_2_sex check_race check_1_race check_2_race check_mar check_1_mar check_2_mar check_ind check_1_ind 
+> check_2_ind check_hh check_1_hh check_2_hh
+
+. 
+. ******************************************************************************************************************************
+. 
+. ** Merge with the raw dataset
+. 
+. merge 1:1 cpsid cpsidp year month using "Dataset_1"
+(label mish_lbl already defined)
+(label hhtenure_lbl already defined)
+(label statefip_lbl already defined)
+(label month_lbl already defined)
+(label yngch_lbl already defined)
+(label relate_lbl already defined)
+(label age_lbl already defined)
+(label sex_lbl already defined)
+(label race_lbl already defined)
+(label marst_lbl already defined)
+(label educ_lbl already defined)
+(label empstat_lbl already defined)
+(label labforce_lbl already defined)
+(label occ1950_lbl already defined)
+(label ind1950_lbl already defined)
+(label classwkr_lbl already defined)
+(label uhrsworkt_lbl already defined)
+(label uhrswork1_lbl already defined)
+(label paidhour_lbl already defined)
+(label lfproxy_lbl already defined)
+(label eligorg_lbl already defined)
+(label otpay_lbl already defined)
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                    15,734,139
+        from master                         0  (_merge==1)
+        from using                 15,734,139  (_merge==2)
+
+    matched                        21,751,206  (_merge==3)
+    -----------------------------------------
+
+. drop if _merge !=3
+(15,734,139 observations deleted)
+
+. drop _merge
+
+. 
+. 
+. ******************************************************************************************************************************
+. 
+. cd "$directory/Selection_02"
+/Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_02
+
+. save "Dataset_2.dta", replace
+file Dataset_2.dta saved
+
+. 
+. 
+. cd "$directory/Selection_01"
+/Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_01
+
+. log close main_01
+      name:  main_01
+       log:  /Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_01/main_01.log
+  log type:  text
+ closed on:  13 Jan 2018, 16:17:16
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
