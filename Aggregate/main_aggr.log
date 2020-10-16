@@ -1,0 +1,128 @@
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  main_aggr
+       log:  /Users/tommaso/Desktop/RAship_Javier/IPUMS/Aggregate/main_aggr.log
+  log type:  text
+ opened on:  13 Jan 2018, 17:24:16
+
+. 
+. 
+. timer on 1
+
+. 
+. *** This script merges together the aggregate datasets
+. 
+. cd "$directory/Selection_04"
+/Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_04
+
+. use "dataset_4.dta", clear
+
+. 
+. cd "$directory/Selection_07"
+/Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_07
+
+. merge 1:1 year month using "Partn_status_flows.dta" 
+(label month_lbl already defined)
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                             0
+    matched                               275  (_merge==3)
+    -----------------------------------------
+
+. drop _merge
+
+. 
+. cd "$directory/Selection_08"
+/Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_08
+
+. merge 1:1 year month using "Duration.dta"
+(label month_lbl already defined)
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                             2
+        from master                         0  (_merge==1)
+        from using                          2  (_merge==2)
+
+    matched                               275  (_merge==3)
+    -----------------------------------------
+
+. drop _merge
+
+. sort year month
+
+. 
+. cd "$directory/Selection_06"
+/Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_06
+
+. merge 1:1 year month using "Cond_tran.dta"
+(label month_lbl already defined)
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                             0
+    matched                               277  (_merge==3)
+    -----------------------------------------
+
+. drop _merge
+
+. 
+. cd "$directory/Selection_10/Correlation"
+/Users/tommaso/Desktop/RAship_Javier/IPUMS/Selection_10/Correlation
+
+. merge 1:1 year month using "Corr.dta"
+(label month_lbl already defined)
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                             0
+    matched                               277  (_merge==3)
+    -----------------------------------------
+
+. drop _merge
+
+. 
+. 
+. order time, after(month)
+
+. 
+. 
+. ** Light modification for clarity
+. 
+. foreach x of varlist EE_mr EU_mr EN_mr UE_mr UU_mr UN_mr NE_mr NU_mr NN_mr  {  
+  2.    label var `x' "General transition rates" 
+  3.    }
+
+. 
+. *
+. 
+. 
+. foreach x of varlist EE_mr_f EU_mr_f EN_mr_f UE_mr_f UU_mr_f UN_mr_f NE_mr_f NU_mr_f NN_mr_f  {  
+  2.    label var `x' "Gen. tran. rates, females" 
+  3.    }
+
+. 
+. *
+. 
+. foreach x of varlist EE_mr_m EU_mr_m EN_mr_m UE_mr_m UU_mr_m UN_mr_m NE_mr_m NU_mr_m NN_mr_m  {  
+  2.    label var `x' "Gen. tran. rates, males" 
+  3.    }
+
+. 
+. *
+. 
+. 
+. cd "$directory/Aggregate"
+/Users/tommaso/Desktop/RAship_Javier/IPUMS/Aggregate
+
+. 
+. save "Aggregate.dta", replace
+file Aggregate.dta saved
+
+. 
+. log close main_aggr
+      name:  main_aggr
+       log:  /Users/tommaso/Desktop/RAship_Javier/IPUMS/Aggregate/main_aggr.log
+  log type:  text
+ closed on:  13 Jan 2018, 17:24:16
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
