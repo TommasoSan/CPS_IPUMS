@@ -2,7 +2,7 @@ cls
 
 set more off
 
-global directory = "/Users/tommaso/Desktop/RAship_Javier/IPUMS"
+global directory = ""
 
 cd "$directory/Selection_02"
 
