@@ -3,7 +3,7 @@
 - Download the data from here: https://cps.ipums.org/cps/. The folder "Documents" contains:
     - A list of the variables needed to run the codes
     - A diagram of the structure of the code
-    - A description of the variables in the final steady state "Aggregate.dta"
+    - A description of the variables in the final dataset "Aggregate.dta"
 
 - What do these codes do:
     - Data cleaning
